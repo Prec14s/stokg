@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gudang — Inventaris Barang</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#E9EDF1; --panel:#FFFFFF; --ink:#18222D; --muted:#5D6B79; --line:#CBD3DB;
+    --blue:#2457C5; --blue-ink:#fff; --low:#E0A100; --low-bg:#FFF4D1; --out:#C2372E; --out-bg:#FBE3E1; --ok:#2E7D52;
+    --font:"Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#121820; --panel:#1B232D; --ink:#E6ECF2; --muted:#93A1AF; --line:#2E3A47;
+      --blue:#5B8BF0; --low-bg:#3A3112; --out-bg:#3D1C1A; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.5}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 60px}
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px}
+  h1{font-stretch:75%;font-weight:800;font-size:clamp(2.2rem,6vw,3.4rem);line-height:.95;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:6px 0 0}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+  button,.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    padding:9px 14px;border-radius:8px;cursor:pointer}
+  button:hover{border-color:var(--ink)}
+  button:focus-visible,input:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .primary{background:var(--blue);color:var(--blue-ink);border-color:var(--blue)}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:24px}
+  .summary div{background:var(--panel);padding:14px 16px}
+  .summary b{display:block;font-size:1.8rem;font-stretch:80%;line-height:1.1}
+  .summary span{color:var(--muted);font-size:.9rem}
+  .summary .warn b{color:var(--low)} .summary .bad b{color:var(--out)}
+  form.add{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;
+    display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:20px}
+  label{font-size:.85rem;color:var(--muted);display:block}
+  input{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+  .bar{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+  .bar input{max-width:320px}
+  .filter button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .row{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+  .row:first-child{border-top:0}
+  .row.low{background:var(--low-bg)} .row.out{background:var(--out-bg)}
+  .name{font-weight:700;font-size:1.05rem}
+  .meta{color:var(--muted);font-size:.85rem}
+  .tag{font-size:.8rem;font-weight:700;padding:1px 7px;border-radius:4px;margin-left:6px;vertical-align:2px}
+  .low .tag{background:var(--low);color:#1a1a1a} .out .tag{background:var(--out);color:#fff}
+  .qty{font-stretch:75%;font-weight:800;font-size:2rem;min-width:3.5ch;text-align:right;font-variant-numeric:tabular-nums}
+  .qty small{font-size:.8rem;font-weight:500;color:var(--muted);font-stretch:100%}
+  .ctrl{display:flex;gap:6px;align-items:center}
+  .ctrl input{width:64px;text-align:center}
+  .ctrl .minus{color:var(--out)} .ctrl .plus{color:var(--ok)}
+  .del{border:0;background:none;color:var(--muted);padding:6px}
+  .empty{padding:40px 16px;text-align:center;color:var(--muted)}
+  details{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+  summary{cursor:pointer;font-weight:700}
+  .log{list-style:none;padding:0;margin:10px 0 0;max-height:260px;overflow:auto;font-size:.9rem}
+  .log li{padding:5px 0;border-top:1px solid var(--line);display:flex;gap:10px}
+  .log time{color:var(--muted);white-space:nowrap}
+  .in{color:var(--ok);font-weight:700} .outx{color:var(--out);font-weight:700}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+  @media (max-width:760px){
+    form.add{grid-template-columns:1fr 1fr}
+    form.add .full{grid-column:1/-1}
+    .row{grid-template-columns:1fr auto}
+    .ctrl{grid-column:1/-1;justify-content:flex-end}
+  }
+  .wa-set{background:var(--panel);border:1px solid var(--line);border-left:4px solid #1E9E57;border-radius:10px;
+    padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:20px}
+  .wa-field{flex:1 1 220px;max-width:320px}
+  .wa-status{flex-basis:100%;margin:0;font-size:.85rem;color:var(--muted)}
+  .wa-status.set{color:var(--ok)}
+  .wa{background:#1E9E57;color:#fff;border-color:#1E9E57}
+  dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);
+    width:min(560px,92vw);padding:20px}
+  dialog::backdrop{background:rgba(10,15,20,.55)}
+  dialog h2{margin:0;font-stretch:80%;font-size:1.5rem}
+  textarea{font:13px/1.4 ui-monospace,Consolas,monospace;width:100%;margin-top:10px;padding:10px;
+    border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical}
+  .dlg-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .wa-opts{display:grid;gap:8px;margin-top:10px}
+  .wa-opts button{text-align:left;padding:12px 14px}
+  @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Stok Gudang</h1>
+      <p class="sub">Catat barang masuk dan keluar. Data tersimpan di browser ini.</p>
+    </div>
+    <div class="tools">
+      <button id="pasteBtn">Tempel JSON</button>
+      <button id="importBtn">Muat JSON</button>
+      <button id="exportBtn">Unduh JSON</button>
+      <button id="waBtn" class="wa">Kirim ke WA</button>
+      <input type="file" id="fileInput" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <form class="wa-set" id="waForm">
+    <div class="wa-field">
+      <label for="waNum">Nomor WhatsApp tujuan</label>
+      <input id="waNum" type="tel" inputmode="numeric" placeholder="mis. 08123456789">
+    </div>
+    <button type="submit">Simpan nomor</button>
+    <p class="wa-status" id="waStatus"></p>
+  </form>
+
+  <section class="summary" aria-label="Ringkasan">
+    <div><b id="sItems">0</b><span>Jenis barang</span></div>
+    <div><b id="sTotal">0</b><span>Total unit</span></div>
+    <div class="warn"><b id="sLow">0</b><span>Stok menipis</span></div>
+    <div class="bad"><b id="sOut">0</b><span>Stok habis</span></div>
+  </section>
+
+  <form class="add" id="addForm">
+    <div class="full"><label for="fName">Nama barang</label><input id="fName" required placeholder="mis. Beras 5 kg"></div>
+    <div><label for="fQty">Stok awal</label><input id="fQty" type="number" min="0" value="0" required></div>
+    <div><label for="fMin">Batas minimum</label><input id="fMin" type="number" min="0" value="5"></div>
+    <div><label for="fUnit">Satuan</label><input id="fUnit" placeholder="pcs" value="pcs"></div>
+    <button class="primary full" type="submit">Tambah barang</button>
+  </form>
+
+  <div class="bar">
+    <input id="search" type="search" placeholder="Cari nama barang…" aria-label="Cari barang">
+    <div class="filter" role="group" aria-label="Filter">
+      <button data-f="all" aria-pressed="true">Semua</button>
+      <button data-f="low" aria-pressed="false">Menipis</button>
+      <button data-f="out" aria-pressed="false">Habis</button>
+    </div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <details>
+    <summary>Riwayat perubahan stok</summary>
+    <ul class="log" id="log"></ul>
+  </details>
+</div>
+<dialog id="pasteDlg">
+  <form method="dialog">
+    <h2>Tempel data JSON</h2>
+    <p class="sub">Tempel isi file data.json (misalnya dari chat WA), lalu klik Muat data.</p>
+    <textarea id="pasteArea" rows="10" placeholder='{"items":[...]}'></textarea>
+    <div class="dlg-actions">
+      <button value="cancel">Batal</button>
+      <button class="primary" id="pasteOk" value="ok">Muat data</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="waDlg">
+  <form method="dialog">
+    <h2>Kirim ke WhatsApp</h2>
+    <p class="sub">Pilih yang mau dikirim.</p>
+    <div class="wa-opts">
+      <button class="primary" id="waReport" value="report">Laporan stok (teks)</button>
+      <button id="waJson" value="json">Data JSON (untuk dimuat lagi)</button>
+    </div>
+    <p class="sub" id="waTarget" style="margin-top:12px"></p>
+    <div class="dlg-actions"><button value="cancel">Tutup</button></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const KEY = "inventory-data-v1";
+let db = { items: [], history: [] };
+let filter = "all";
+
+const $ = id => document.getElementById(id);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ toast("Gagal menyimpan di browser"); }
+}
+async function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { db = normalize(JSON.parse(raw)); return; }
+  } catch(e){}
+  // Pertama kali dibuka: ambil data awal dari data.json (jika ada)
+  try {
+    const res = await fetch("data.json", { cache: "no-store" });
+    if (res.ok) { db = normalize(await res.json()); save(); }
+  } catch(e){}
+}
+function normalize(d){
+  return {
+    items: Array.isArray(d.items) ? d.items.map(i => ({
+      id: i.id || uid(), name: String(i.name || "Tanpa nama"),
+      qty: Math.max(0, parseInt(i.qty) || 0), min: Math.max(0, parseInt(i.min) || 0),
+      unit: i.unit || "pcs"
+    })) : [],
+    history: Array.isArray(d.history) ? d.history : []
+  };
+}
+function status(i){ return i.qty === 0 ? "out" : (i.qty <= i.min ? "low" : "ok"); }
+
+function render(){
+  const q = $("search").value.trim().toLowerCase();
+  const items = db.items
+    .filter(i => i.name.toLowerCase().includes(q))
+    .filter(i => filter === "all" || status(i) === filter)
+    .sort((a,b) => a.name.localeCompare(b.name, "id"));
+
+  $("list").innerHTML = items.length ? items.map(i => {
+    const s = status(i);
+    const tag = s === "out" ? '<span class="tag">Habis</span>' : s === "low" ? '<span class="tag">Menipis</span>' : "";
+    return `<div class="row ${s}" data-id="${i.id}">
+      <div><div class="name">${esc(i.name)}${tag}</div><div class="meta">Minimum ${i.min} ${esc(i.unit)}</div></div>
+      <div class="qty">${i.qty} <small>${esc(i.unit)}</small></div>
+      <div class="ctrl">
+        <button class="minus" data-act="out" aria-label="Kurangi stok ${esc(i.name)}">−</button>
+        <input type="number" min="1" value="1" aria-label="Jumlah">
+        <button class="plus" data-act="in" aria-label="Tambah stok ${esc(i.name)}">+</button>
+        <button class="del" data-act="del" aria-label="Hapus ${esc(i.name)}">Hapus</button>
+      </div>
+    </div>`;
+  }).join("") : `<div class="empty">${db.items.length ? "Tidak ada barang yang cocok." : "Belum ada barang. Tambahkan lewat formulir di atas."}</div>`;
+
+  $("sItems").textContent = db.items.length;
+  $("sTotal").textContent = db.items.reduce((a,i) => a + i.qty, 0);
+  $("sLow").textContent = db.items.filter(i => status(i) === "low").length;
+  $("sOut").textContent = db.items.filter(i => status(i) === "out").length;
+
+  $("log").innerHTML = db.history.slice(0, 100).map(h => {
+    const t = new Date(h.time).toLocaleString("id-ID", { dateStyle:"short", timeStyle:"short" });
+    const cls = h.change > 0 ? "in" : "outx";
+    return `<li><time>${t}</time><span class="${cls}">${h.change > 0 ? "+" : ""}${h.change}</span><span>${esc(h.name)} → ${h.after}</span></li>`;
+  }).join("") || "<li>Belum ada perubahan.</li>";
+}
+
+function log(item, change){
+  db.history.unshift({ time: new Date().toISOString(), name: item.name, change, after: item.qty });
+  db.history = db.history.slice(0, 500);
+}
+
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("fName").value.trim();
+  if (!name) return;
+  if (db.items.some(i => i.name.toLowerCase() === name.toLowerCase())) { toast("Barang dengan nama itu sudah ada"); return; }
+  const item = { id: uid(), name, qty: Math.max(0, parseInt($("fQty").value) || 0),
+    min: Math.max(0, parseInt($("fMin").value) || 0), unit: $("fUnit").value.trim() || "pcs" };
+  db.items.push(item);
+  if (item.qty) log(item, item.qty);
+  save(); render(); e.target.reset(); $("fMin").value = 5; $("fUnit").value = "pcs"; $("fName").focus();
+  toast(`${name} ditambahkan`);
+});
+
+$("list").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-act]"); if (!btn) return;
+  const row = btn.closest(".row"); const item = db.items.find(i => i.id === row.dataset.id); if (!item) return;
+  const act = btn.dataset.act;
+  if (act === "del") {
+    if (!confirm(`Hapus "${item.name}" dari daftar?`)) return;
+    db.items = db.items.filter(i => i !== item); save(); render(); toast("Barang dihapus"); return;
+  }
+  const n = Math.max(1, parseInt(row.querySelector("input").value) || 1);
+  if (act === "out") {
+    if (item.qty === 0) { toast("Stok sudah habis"); return; }
+    const take = Math.min(n, item.qty);
+    item.qty -= take; log(item, -take);
+    if (take < n) toast(`Stok hanya ${take}, dikurangi semua`);
+  } else { item.qty += n; log(item, n); }
+  save(); render();
+});
+
+$("search").addEventListener("input", render);
+document.querySelectorAll(".filter button").forEach(b => b.addEventListener("click", () => {
+  filter = b.dataset.f;
+  document.querySelectorAll(".filter button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  render();
+}));
+
+$("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "data.json";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("data.json diunduh");
+});
+$("importBtn").addEventListener("click", () => $("fileInput").click());
+$("fileInput").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const d = normalize(JSON.parse(await f.text()));
+    if (!confirm(`Ganti data sekarang dengan ${d.items.length} barang dari file?`)) return;
+    db = d; save(); render(); toast("Data dimuat dari file");
+  } catch(err){ toast("File bukan JSON inventaris yang valid"); }
+  e.target.value = "";
+});
+
+// ===== Tempel JSON =====
+$("pasteBtn").addEventListener("click", () => { $("pasteArea").value = ""; $("pasteDlg").showModal(); $("pasteArea").focus(); });
+$("pasteOk").addEventListener("click", e => {
+  e.preventDefault();
+  try {
+    const d = normalize(JSON.parse($("pasteArea").value));
+    if (!d.items.length && !confirm("JSON tidak berisi barang. Tetap muat (data jadi kosong)?")) return;
+    db = d; save(); render(); $("pasteDlg").close(); toast(`${d.items.length} barang dimuat`);
+  } catch(err){ toast("Teks bukan JSON yang valid. Cek tanda kurung dan koma."); }
+});
+
+// ===== Kirim ke WhatsApp =====
+let waNumber = "";
+try { waNumber = localStorage.getItem(KEY + "-wa") || ""; } catch(e){}
+
+function formatWa(raw){
+  let n = String(raw).replace(/\D/g, "");
+  if (n.startsWith("0")) n = "62" + n.slice(1);
+  else if (n.startsWith("8")) n = "62" + n;
+  return n;
+}
+function showWa(){
+  $("waNum").value = waNumber ? "0" + waNumber.slice(2) : "";
+  const st = $("waStatus");
+  st.textContent = waNumber ? `Laporan akan dikirim ke +${waNumber}` : "Belum diisi. Jika kosong, Anda memilih kontak sendiri di WhatsApp.";
+  st.classList.toggle("set", !!waNumber);
+  $("waTarget").textContent = waNumber ? `Tujuan: +${waNumber}` : "Tujuan: pilih kontak di WhatsApp (nomor belum diisi)";
+}
+$("waForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const n = formatWa($("waNum").value);
+  if (n && (n.length < 10 || n.length > 15)) { toast("Nomor tidak valid. Contoh: 08123456789"); return; }
+  waNumber = n;
+  try { localStorage.setItem(KEY + "-wa", n); } catch(err){}
+  showWa(); toast(n ? "Nomor WhatsApp disimpan" : "Nomor dihapus");
+});
+showWa();
+
+$("waBtn").addEventListener("click", () => $("waDlg").showModal());
+
+function waOpen(text){
+  const num = waNumber;
+  window.open(`https://wa.me/${num}?text=${encodeURIComponent(text)}`, "_blank");
+}
+
+function buildReport(){
+  const tgl = new Date().toLocaleString("id-ID", { dateStyle:"long", timeStyle:"short" });
+  const items = [...db.items].sort((a,b) => a.name.localeCompare(b.name, "id"));
+  const habis = items.filter(i => status(i) === "out");
+  const tipis = items.filter(i => status(i) === "low");
+  let t = `*LAPORAN STOK*\n${tgl}\n\n`;
+  t += items.map(i => `• ${i.name}: ${i.qty} ${i.unit}`).join("\n");
+  if (tipis.length) t += `\n\n⚠️ *Menipis:*\n` + tipis.map(i => `• ${i.name} (${i.qty}/${i.min})`).join("\n");
+  if (habis.length) t += `\n\n❌ *Habis:*\n` + habis.map(i => `• ${i.name}`).join("\n");
+  t += `\n\nTotal: ${items.length} jenis, ${items.reduce((a,i) => a + i.qty, 0)} unit`;
+  return t;
+}
+
+$("waReport").addEventListener("click", e => { e.preventDefault(); waOpen(buildReport()); });
+
+$("waJson").addEventListener("click", async e => {
+  e.preventDefault();
+  const json = JSON.stringify(db);
+  const file = new File([JSON.stringify(db, null, 2)], "data.json", { type: "application/json" });
+  // Di HP: bagikan sebagai file (pilih WhatsApp di menu bagikan)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "data.json" }); return; }
+    catch(err){ if (err.name === "AbortError") return; }
+  }
+  // Cadangan: kirim isi JSON sebagai teks
+  if (json.length > 60000) { toast("Data terlalu besar untuk teks WA. Pakai Unduh JSON lalu kirim filenya."); return; }
+  waOpen(json);
+});
+
+let tt;
+function toast(msg){ const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 2200); }
+
+load().then(render);
+</script>
+</body>
+</html>
